@@ -57,4 +57,54 @@ router.post('/register', async (req: Request, res: Response) => {
   }
 });
 
+router.post('/login', async (req: Request, res: Response) => {
+  try {
+    const { email, password } = req.body;
+
+    if (!email || !password) {
+      res.status(400).json({ error: 'Email and password are required' });
+      return;
+    }
+
+    const user = findUserByEmail(email);
+    if (!user) {
+      res.status(401).json({ error: 'Invalid credentials' });
+      return;
+    }
+
+    const passwordMatch = await bcrypt.compare(password, user.passwordHash);
+    if (!passwordMatch) {
+      res.status(401).json({ error: 'Invalid credentials' });
+      return;
+    }
+
+    const accessToken = jwt.sign(
+      { userId: user.id, email: user.email },
+      process.env.JWT_SECRET as string,
+      { algorithm: 'HS256', expiresIn: '15m' }
+    );
+
+    const refreshToken = jwt.sign(
+      { userId: user.id },
+      process.env.REFRESH_TOKEN_SECRET as string,
+      { algorithm: 'HS256', expiresIn: '7d' }
+    );
+
+    res.status(200).json({
+      message: 'Login successful',
+      accessToken,
+      refreshToken,
+      user: {
+        id: user.id,
+        email: user.email,
+        createdAt: user.createdAt
+      }
+    });
+
+  } catch (error) {
+    console.error('Login error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 export default router;
