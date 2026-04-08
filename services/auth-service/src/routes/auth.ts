@@ -4,6 +4,7 @@ import jwt from 'jsonwebtoken';
 import { v4 as uuidv4 } from 'uuid';
 import { createUser, findUserByEmail, findUserById } from '../models/user';
 import { addToBlacklist, isBlacklisted } from '../models/tokenBlacklist';
+import { authenticateToken, AuthRequest } from '../middleware/auth';
 
 const router = Router();
 
@@ -165,6 +166,13 @@ router.post('/logout', async (req: Request, res: Response) => {
     console.error('Logout error:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
+});
+
+router.get('/me', authenticateToken, (req: AuthRequest, res: Response) => {
+  res.status(200).json({
+    message: 'Protected route accessed successfully',
+    user: req.user
+  });
 });
 
 export default router;
