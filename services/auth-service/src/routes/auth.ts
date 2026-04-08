@@ -2,7 +2,8 @@ import { Router, Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { v4 as uuidv4 } from 'uuid';
-import { createUser, findUserByEmail } from '../models/user';
+import { createUser, findUserByEmail, findUserById } from '../models/user';
+import { addToBlacklist, isBlacklisted } from '../models/tokenBlacklist';
 
 const router = Router();
 
@@ -103,6 +104,65 @@ router.post('/login', async (req: Request, res: Response) => {
 
   } catch (error) {
     console.error('Login error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+router.post('/refresh', async (req: Request, res: Response) => {
+  try {
+    const { refreshToken } = req.body;
+
+    if (!refreshToken) {
+      res.status(400).json({ error: 'Refresh token is required' });
+      return;
+    }
+
+    if (isBlacklisted(refreshToken)) {
+      res.status(401).json({ error: 'Refresh token has been revoked' });
+      return;
+    }
+
+    const payload = jwt.verify(
+      refreshToken,
+      process.env.REFRESH_TOKEN_SECRET as string
+    ) as { userId: string };
+
+    const user = findUserById(payload.userId);
+    if (!user) {
+      res.status(401).json({ error: 'User not found' });
+      return;
+    }
+
+    const newAccessToken = jwt.sign(
+      { userId: user.id, email: user.email },
+      process.env.JWT_SECRET as string,
+      { algorithm: 'HS256', expiresIn: '15m' }
+    );
+
+    res.status(200).json({
+      message: 'Token refreshed successfully',
+      accessToken: newAccessToken
+    });
+
+  } catch (error) {
+    res.status(401).json({ error: 'Invalid or expired refresh token' });
+  }
+});
+
+router.post('/logout', async (req: Request, res: Response) => {
+  try {
+    const { refreshToken } = req.body;
+
+    if (!refreshToken) {
+      res.status(400).json({ error: 'Refresh token is required' });
+      return;
+    }
+
+    addToBlacklist(refreshToken);
+
+    res.status(200).json({ message: 'Logged out successfully' });
+
+  } catch (error) {
+    console.error('Logout error:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
