@@ -1,0 +1,21 @@
+# Node
+node_modules/
+dist/
+.env
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+*.egg-info/
+
+# Go
+*.exe
+*.test
+
+# Docker
+.docker/
+
+# Misc
+.DS_Store
+*.log
