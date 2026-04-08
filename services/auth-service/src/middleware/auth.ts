@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
+import { validateTokenAlgorithm } from './security';
 
 export interface AuthRequest extends Request {
   user?: {
@@ -19,6 +20,11 @@ export const authenticateToken = (
 
     if (!token) {
       res.status(401).json({ error: 'Access token is required' });
+      return;
+    }
+
+    if (!validateTokenAlgorithm(token)) {
+      res.status(401).json({ error: 'Invalid token algorithm' });
       return;
     }
 
