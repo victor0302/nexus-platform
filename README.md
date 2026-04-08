@@ -1,4 +1,4 @@
-# Cloud Platform
+# Nexus Platform
 
 A cloud-native microservices blogging platform built to demonstrate 
 distributed systems architecture, DevOps infrastructure, and security 
