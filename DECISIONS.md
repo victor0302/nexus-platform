@@ -126,3 +126,33 @@ RabbitMQ. This guarantees the event is never lost without requiring
 distributed transactions.
 
 ---
+## ADR-009 — UUID Package Version: v8 vs v9+
+
+**Decision:** uuid v8
+
+**Alternative considered:** uuid v9+
+
+**Reasoning:** uuid v9 and above are ESM-only packages and are
+incompatible with CommonJS module systems. Since the auth service
+compiles to CommonJS via TypeScript, uuid v9+ throws an
+ERR_REQUIRE_ESM error at runtime inside Docker. Pinning to uuid v8
+maintains CommonJS compatibility without changing the module system.
+The alternative would have been migrating the entire project to ESM,
+which introduces broader configuration changes and was not justified
+for this use case.
+
+---
+
+## ADR-010 — Security: None-Algorithm Attack Defense
+
+**Decision:** Explicit algorithm validation before JWT verification
+
+**Alternative considered:** Relying solely on jsonwebtoken library defaults
+
+**Reasoning:** The none-algorithm attack allows a malicious user to strip
+the JWT signature and set the algorithm to none, potentially bypassing
+verification in naive implementations. We defend against this at two
+levels — first by decoding the token header and rejecting anything that
+isn't HS256 before verification, then by explicitly passing
+algorithms: ['HS256'] to jwt.verify. Defense in depth applied at the
+application layer.
